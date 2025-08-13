@@ -1,6 +1,6 @@
 #!/usr/bin/env pybricks-micropython
 from pybricks.hubs import EV3Brick
-from pybricks.ev3devices import Motor
+from pybricks.ev3devices import Motor, UltrasonicSensor
 from pybricks.parameters import Port, Stop
 from pybricks.tools import wait
 
@@ -13,9 +13,14 @@ class RoboGirador:
         # Definindo motores
         self.motor_prancha = Motor(Port.B)
         self.motor_braco = Motor(Port.A)
-
+        self.sensor_distancia = UltrasonicSensor(Port.S1)
+        
         # Estado do braço: 'ABERTO', 'FECHADO', 'RETRAIDO'
         self.estado_braco = 'ABERTO'
+
+
+    def get_distance(self):
+        return self.sensor_distancia.distance()
 
     def retrair_braco(self):        
         if self.estado_braco == 'FECHADO':
@@ -79,8 +84,9 @@ class RoboGirador:
         """Mostra uma mensagem no display do EV3 e apaga após um tempo."""
         self.ev3.screen.clear()
         self.ev3.screen.draw_text(0, 50, mensagem)
-        wait(tempo_ms)
-        self.ev3.screen.clear()
+        if tempo_ms is not None:
+            wait(tempo_ms)
+            self.ev3.screen.clear()
 
     def ter_interpreter_sequence(self, movimentos):  
         """Interpreta uma sequência de movimentos no formato ['GH+', 'GV-', ...]"""
@@ -108,23 +114,56 @@ robo = RoboGirador(ev3)
 
 ev3.speaker.beep()
 
-lista_movimentos = [
-    'GV+', 'GP+', 'GH-', 'GV+', 'GH+', 'GH+', 'GP-', 'GH+', 'GV-', 'GH-', 'GV+', 'GH+', 'GP-', 'GH+', 'GP-'
-]
-
 
 robo.printMessage("Iniciando...", 2000)
-print("Lista de movimento")
-print(lista_movimentos)
-robo.ter_interpreter_sequence(lista_movimentos)
 
-lista_movimentos_invertida = [
-    movimento[:-1] + ('-' if movimento[-1] == '+' else '+')
-    for movimento in reversed(lista_movimentos)
-]
+distanciaMaxima =  100
+distancia =  130
 
-print("Lista de movimento invertidas")
-print(lista_movimentos_invertida)
-robo.ter_interpreter_sequence(lista_movimentos_invertida)
 
+#while (True):
+#    distancia = robo.get_distance()
+#    print(distancia)
+#    robo.printMessage(distancia, 2000)
+
+def insiraCubo():
+    robo.printMessage("Insira o cubo...", None)
+    while True:
+        distancia = robo.get_distance()
+        if distancia <= distanciaMaxima:
+            wait(1000)
+            break
+    robo.printMessage("Executando...", 2000)
+
+def retireCubo():
+    robo.printMessage("Retire o cubo...", None)
+    while True:
+        distancia = robo.get_distance()
+        if distancia > distanciaMaxima:
+            wait(1000)
+            break
+    robo.printMessage("Executando...", 2000)
+
+while (True):
+    insiraCubo() 
+    lista_movimentos = [
+    'GV+', 'GP+', 'GH-', 'GV+', 'GH+', 'GH+', 'GP-', 'GH+', 'GV-', 'GH-', 'GV+', 'GH+', 'GP-', 'GH+', 'GP-'
+    ]
+    
+    print("Lista de movimento")
+    print(lista_movimentos)
+    robo.ter_interpreter_sequence(lista_movimentos)
+    robo.abrir_braco()
+    retireCubo()
+    insiraCubo()
+    lista_movimentos_invertida = [
+        movimento[:-1] + ('-' if movimento[-1] == '+' else '+')
+        for movimento in reversed(lista_movimentos)
+    ]
+
+    print("Lista de movimento invertidas")
+    print(lista_movimentos_invertida)
+    robo.ter_interpreter_sequence(lista_movimentos_invertida)
+    robo.abrir_braco()
+    retireCubo()
 robo.printMessage("Fim!", 2000)
